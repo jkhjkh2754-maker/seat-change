@@ -4,7 +4,9 @@
 
 ## 현재 상태
 
-사이트 코드와 루트의 .nojekyll 파일을 준비했습니다. 자동 활성화 요청은 연결된 GitHub 앱의 Pages/Administration 쓰기 권한 부족으로 HTTP 403 Resource not accessible by integration 응답을 받았습니다. 아직 공개 배포 완료 상태가 아닙니다.
+공개 배포를 완료했습니다. 주소: https://jkhjkh2754-maker.github.io/seat-change/
+
+소유자가 main 브랜치의 /(root)를 Pages 배포 원본으로 활성화했고, GitHub Pages API의 built 상태를 확인했습니다. 공개 주소에서 HTTP 200, 주요 자원 8개의 검증 코드와의 일치, 30명 누락·중복 없는 배치, 좌석 교환, 한글 PDF 직접 다운로드와 JavaScript 오류 없음도 확인했습니다.
 
 ## 소유자 계정에서 한 번만 설정
 
@@ -23,4 +25,4 @@
 - 두 좌석을 교환하고 PDF를 다운로드합니다. 한글과 최종 좌석이 맞는지 확인합니다.
 - 새로고침 후 명단·배치가 초기화되는지 확인합니다.
 
-배포 설정 완료를 알려 주시면 공개 주소에서 화면·정적 자원·배치·PDF 동작을 추가로 확인할 수 있습니다. 배포 전 로컬 PC·모바일 시뮬레이션 검증은 TESTING.md에 기록했습니다.
+이후 main의 사이트 파일을 수정하면 GitHub Pages가 자동으로 다시 배포합니다. 설정 변경이 필요할 때 위 절차를 참고하세요. 로컬 PC·모바일 시뮬레이션 검증은 TESTING.md에 기록했습니다.
