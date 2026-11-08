@@ -38,8 +38,14 @@ Chromium + Playwright, Linux. PC 1440px, 태블릿 768px, 모바일 390px·320px
 
 전체: `npm run test:browser` (로컬 포트 8765 사용)
 
-순서: tests/browser.mjs → tests/pdf.mjs → tests/accessibility.mjs → tests/verify_pdf.py. 마지막 스크립트는 앞에서 생성한 /tmp PDF와 최종 화면 좌석 정보를 비교합니다.
+순서: tests/room.mjs → tests/browser.mjs → tests/pdf.mjs → tests/accessibility.mjs → tests/verify_pdf.py. 마지막 스크립트는 앞에서 생성한 /tmp PDF와 최종 화면 좌석 정보를 비교합니다.
 
 ## 통로 조절 제거
 
 사용자 요청으로 행·열 통로 입력과 적용, 상태 데이터, PDF의 추가 간격과 안내 문구를 제거했습니다. 기본 좌석 간격은 유지합니다. 수정 후 배치·자리 교환·모바일·키보드·PDF 검증을 재실행해 모두 통과했습니다.
+
+## 교실 만들기 반응 수정
+
+공개 사이트에서 새 파일만 읽으면 크기 변경이 되지만 완료 안내가 모바일 화면 아래에 표시되는 것을 확인했습니다. 이전 app.js와 통로 제거 후 core.js가 섞이면 삭제된 listNumbers export를 찾다가 모듈 로딩이 실패하는 사례도 재현했습니다. 파일 버전 URL을 도입하고 교실 설정 바로 아래에 완료·오류 안내와 미리보기 링크를 추가했습니다.
+
+`tests/room.mjs`에서 같은 크기 적용, 4×5·7×6 크기 변경, 12×12·0·빈 값·소수 오류와 기존 교실 유지, 모바일 터치와 완료 안내 위치, 이전 버전의 무버전 URL을 불러오지 않는지 검증했습니다. 이 검증과 전체 배치·PDF·접근성 검증을 통과했습니다. 개발용 정적 서버는 파일 URL의 버전 쿼리를 제외하고 경로를 해석합니다.

@@ -1,4 +1,4 @@
-import {validateRoster} from './core.js';
+import {validateRoster} from './core.js?v=81568836c015';
 
 // Stage 2 stores only the current page's result and edit history.
 export function installSeating(api) {
