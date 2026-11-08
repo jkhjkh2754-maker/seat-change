@@ -22,7 +22,7 @@ export function installPdf(api) {
       const landscape = orientation === 'landscape';
       const [width,height] = landscape ? [841.89,595.28] : [595.28,841.89];
       const {rows, cols, teacher, disabled, students, result} = snapshot;
-      const byId = new Map(students.map((s,i)=>[s.id,{...s,display:s.number || String(i+1)} ]));
+      const byId = new Map(students.map((s,i)=>[s.id,{...s,display:s.displayName || s.number || String(i+1)} ]));
       const safeText = text => {
         const value = clean(text);
         for (const ch of value) if (!charset.has(ch.codePointAt(0))) throw Error(`글꼴이 지원하지 않는 문자 '${ch}'가 있습니다. 제목·이름을 수정한 뒤 다시 다운로드하세요.`);

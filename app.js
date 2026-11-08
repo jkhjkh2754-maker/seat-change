@@ -1,6 +1,6 @@
-import {installPdf} from './pdf.js?v=d22a632616cd';
-import {installSeating} from './stage2.js?v=d22a632616cd';
-import {assignNumbers,roomSize,numbered,pasted,csv,validateRoster} from './core.js?v=d22a632616cd';
+import {installPdf} from './pdf.js?v=2a0ab48ea395';
+import {installSeating} from './stage2.js?v=2a0ab48ea395';
+import {assignNumbers,roomSize,numbered,pasted,csv,validateRoster} from './core.js?v=2a0ab48ea395';
 const $=id=>document.getElementById(id);let rows=6,cols=6,disabled=new Set,teacher=false,draft=[],students=[],serial=0,csvJob=0;
 let stage = null;
 const id=(r,c)=>`R${r}C${c}`;const capacity=()=>rows*cols-disabled.size;const message=t=>{$('message').textContent=t;};const action=f=>{try{f();}catch(e){message(e.message);}};

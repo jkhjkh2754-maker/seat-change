@@ -1,8 +1,9 @@
-import {validateRoster} from './core.js?v=d22a632616cd';
+import {validateRoster} from './core.js?v=2a0ab48ea395';
 
 // Stage 2 stores only the current page's result and edit history.
 export function installSeating(api) {
   const $ = id => document.getElementById(id);
+  const displayNames = new Map();
   let result = null, past = [], future = [], selected = null;
   let revealed = new Set(), hidden = false, running = false, generation = 0;
   let timer = null, audio = null, gain = null, blockedControls = [];
@@ -11,7 +12,7 @@ export function installSeating(api) {
   sound.before(soundHome);
   const cancelHome = document.createComment('cancel button');
   $('cancelSeating').before(cancelHome);
-  const label = student => student.number || String(api.students().indexOf(student) + 1);
+  const label = student => displayNames.get(student.id) || student.number || String(api.students().indexOf(student) + 1);
   const seats = () => [...document.querySelectorAll('.seat')].filter(b => !b.classList.contains('off')).map(b => b.dataset.seat);
   function stopSound() {
     if (audio) { const old = audio; audio = null; gain = null; old.close().catch(() => {}); }
@@ -57,13 +58,13 @@ export function installSeating(api) {
     }
   }
   function controls() {
-    for (const key of ['revealAll', 'hideResult', 'editRoom', 'downloadPdf']) $(key).disabled = !result || running || (key === 'downloadPdf' && $(key).dataset.busy === 'true');
+    for (const key of ['revealAll', 'hideResult', 'editRoom', 'editNames', 'downloadPdf']) $(key).disabled = !result || running || (key === 'downloadPdf' && $(key).dataset.busy === 'true');
     $('undo').disabled = !past.length || running; $('redo').disabled = !future.length || running;
     $('hideResult').textContent = hidden ? '결과 다시 보기' : '결과 숨기기';
   }
   function invalidate() {
     if (running) return;
-    result = null; past = []; future = []; selected = null; revealed.clear(); hidden = false;
+    result = null; past = []; future = []; selected = null; revealed.clear(); hidden = false; displayNames.clear();
     controls();
   }
   function valid(candidate) {
@@ -140,6 +141,45 @@ export function installSeating(api) {
   $('grid').addEventListener('keydown', event => {
     if (event.key === 'Escape' && selected) { selected = null; api.message('좌석 선택을 취소했습니다.'); api.draw(); }
   });
+  const nameDialog = $('nameDialog');
+  $('editNames').onclick = () => {
+    if (!result || running) return;
+    $('nameRows').replaceChildren();
+    for (const student of api.students()) {
+      const row = document.createElement('tr');
+      const number = document.createElement('th'); number.scope = 'row'; number.textContent = student.number;
+      const cell = document.createElement('td');
+      const input = document.createElement('input');
+      input.type = 'text'; input.maxLength = 100; input.autocomplete = 'off';
+      input.value = displayNames.get(student.id) || '';
+      input.dataset.student = student.id;
+      input.setAttribute('aria-label', `${student.number}번 이름`);
+      input.placeholder = '비워 두면 번호 유지';
+      cell.append(input); row.append(number, cell); $('nameRows').append(row);
+    }
+    nameDialog.hidden = false; nameDialog.showModal();
+    $('nameRows').querySelector('input')?.focus();
+  };
+  $('nameForm').onsubmit = event => {
+    event.preventDefault();
+    if (!result || running) return;
+    for (const input of $('nameRows').querySelectorAll('input')) {
+      const value = input.value.trim();
+      if (value) displayNames.set(input.dataset.student, value);
+      else displayNames.delete(input.dataset.student);
+    }
+    selected = null;
+    nameDialog.close(); api.draw(); api.message('이름을 적용했습니다. 입력한 이름이 PDF에도 반영됩니다.');
+  };
+  $('cancelNames').onclick = () => nameDialog.close();
+  nameDialog.addEventListener('close', () => { nameDialog.hidden = true; $('editNames').focus({preventScroll:true}); });
+  nameDialog.addEventListener('keydown', event => {
+    if (event.key !== 'Tab') return;
+    const items = [...nameDialog.querySelectorAll('input, button')];
+    const first = items[0], last = items.at(-1);
+    if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    else if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+  });
   $('cancelSeating').onclick = cancel;
   $('mute').onchange = volume; $('volume').oninput = volume;
   $('revealAll').onclick = () => { hidden = false; revealed = new Set(Object.keys(result || {})); api.draw(); };
@@ -154,5 +194,5 @@ export function installSeating(api) {
   };
   window.addEventListener('pagehide', () => { generation++; if (running) cleanup(); else stopSound(); });
   controls();
-  return {decorate, invalidate, refresh: controls, snapshot: () => (!running && result && valid(result) ? {result: {...result}, students: api.students().map(s=>({...s})), ...api.room()} : null), running: () => running};
+  return {decorate, invalidate, refresh: controls, snapshot: () => (!running && result && valid(result) ? {result: {...result}, students: api.students().map(s=>({...s, displayName: displayNames.get(s.id) || ''})), ...api.room()} : null), running: () => running};
 }
