@@ -21,7 +21,7 @@ export function installPdf(api) {
       const title = clean(titleInput);
       const landscape = orientation === 'landscape';
       const [width,height] = landscape ? [841.89,595.28] : [595.28,841.89];
-      const {rows, cols, rowGaps, colGaps, teacher, disabled, students, result} = snapshot;
+      const {rows, cols, teacher, disabled, students, result} = snapshot;
       const byId = new Map(students.map((s,i)=>[s.id,{...s,display:s.number?`${s.number} · ${s.name}`:`${s.name} [구분 ${i+1}]`} ]));
       const safeText = text => {
         const value = clean(text);
@@ -38,9 +38,9 @@ export function installPdf(api) {
         for(let size=max;size>=min;size-=.5){const parts=lines(text,size,w);if(parts.every(p=>font.widthOfTextAtSize(p,size)<=w)&&parts.length*size*1.3<=h)return {parts,size};}
         throw Error('이름 또는 제목이 너무 길어 읽기 좋게 배치할 수 없습니다. A4 방향을 바꾸거나 페이지 분할을 선택하세요. 긴 입력은 줄여 주세요.');
       }
-      const gap=12, margin=30;
-      const cellW=(width-margin*2-colGaps.length*gap)/cols;
-      const perPage=split?Math.min(rows,Math.max(1,Math.floor((height-180)/(65+gap)))):rows;
+      const margin=30;
+      const cellW=(width-margin*2)/cols;
+      const perPage=split?Math.min(rows,Math.max(1,Math.floor((height-210)/65))):rows;
       const order=Array.from({length:rows},(_,i)=>teacher?rows-i:i+1);
       const chunks=[];for(let i=0;i<rows;i+=perPage)chunks.push(order.slice(i,i+perPage));
       for(let pi=0;pi<chunks.length;pi++){
@@ -49,8 +49,8 @@ export function installPdf(api) {
         const centered=(text,x,y,w,h,max=12,min=8)=>{const f=fit(text,w,h,max,min);let top=y+h/2+(f.parts.length-1)*f.size*.65;for(const line of f.parts){write(line,x+(w-font.widthOfTextAtSize(line,f.size))/2,top-f.size*.35,f.size);top-=f.size*1.3;}};
         centered(title,margin,height-65,width-margin*2,36,20,12);
         write(`${teacher?'교사 기준 · 아래쪽이 칠판':'학생 기준 · 위쪽이 칠판'} / ${pi+1}쪽 · 전체 ${chunks.length}쪽`,margin,height-82,10);
-        const rr=chunks[pi];const horizontalGaps=rr.slice(0,-1).filter(r=>rowGaps.includes(teacher?r-1:r)).length;
-        const cellH=(height-210-horizontalGaps*gap)/rr.length;
+        const rr=chunks[pi];
+        const cellH=(height-210)/rr.length;
         if(cellW<30 || cellH<32)throw Error('좌석이 너무 작아집니다. A4 방향을 바꾸거나 페이지 분할을 선택하세요.');
         const boardY=teacher?48:height-126;
         page.drawRectangle({x:width*.25,y:boardY,width:width*.5,height:23,color:green});
@@ -65,11 +65,10 @@ export function installPdf(api) {
             const student=byId.get(result[key]);const text=off?'제외 좌석':student?student.display:'빈자리';
             centered(text,x+4,y-cellH+17,cellW-8,cellH-23,12);
             centered(key,x+2,y-cellH+2,cellW-4,12,8);
-            x+=cellW;if(colGaps.includes(teacher?c-1:c))x+=gap;
+            x+=cellW;
           }
-          y-=cellH;if(rowGaps.includes(teacher?r-1:r))y-=gap;
+          y-=cellH;
         }
-        write('통로는 좌석 사이의 넓은 간격으로 표시합니다.',margin,25,8);
       }
       const bytes=await doc.save();
       const url=URL.createObjectURL(new Blob([bytes],{type:'application/pdf'}));
