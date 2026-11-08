@@ -1,6 +1,6 @@
-import {installPdf} from './pdf.js?v=81568836c015';
-import {installSeating} from './stage2.js?v=81568836c015';
-import {roomSize,numbered,pasted,csv,validateRoster} from './core.js?v=81568836c015';
+import {installPdf} from './pdf.js?v=d22a632616cd';
+import {installSeating} from './stage2.js?v=d22a632616cd';
+import {assignNumbers,roomSize,numbered,pasted,csv,validateRoster} from './core.js?v=d22a632616cd';
 const $=id=>document.getElementById(id);let rows=6,cols=6,disabled=new Set,teacher=false,draft=[],students=[],serial=0,csvJob=0;
 let stage = null;
 const id=(r,c)=>`R${r}C${c}`;const capacity=()=>rows*cols-disabled.size;const message=t=>{$('message').textContent=t;};const action=f=>{try{f();}catch(e){message(e.message);}};
@@ -28,7 +28,7 @@ $('roomForm').onsubmit = event => {
   }
 };
 $('view').onclick=()=>{teacher=!teacher;draw();};
-function preview(data){if(data.length>120)throw Error('명단은 최대 120명입니다.');draft=data.map(s=>({...s}));$('draftRows').replaceChildren();draft.forEach((s,i)=>{const tr=document.createElement('tr');const cell=document.createElement('td');cell.textContent=i+1;tr.append(cell);for(const field of ['number','name']){const td=document.createElement('td'),input=document.createElement('input');input.value=s[field];input.setAttribute('aria-label',`${i+1}번째 ${field==='number'?'학번':'이름'}`);input.oninput=()=>{draft[i][field]=input.value.trim();};td.append(input);tr.append(td);}$('draftRows').append(tr);});$('draft').hidden=false;$('draftCount').textContent=`${draft.length}명`;message('미리보기입니다. 확인·수정한 뒤 명단을 확정하세요.');}
+function preview(data){if(data.length>120)throw Error('명단은 최대 120명입니다.');draft=assignNumbers(data);$('draftRows').replaceChildren();draft.forEach((s,i)=>{const tr=document.createElement('tr');const cell=document.createElement('td');cell.textContent=s.number;tr.append(cell);for(const field of ['name']){const td=document.createElement('td'),input=document.createElement('input');input.value=s[field];input.setAttribute('aria-label',`${i+1}번째 ${field==='number'?'학번':'이름'}`);input.oninput=()=>{draft[i][field]=input.value.trim();};td.append(input);tr.append(td);}$('draftRows').append(tr);});$('draft').hidden=false;$('draftCount').textContent=`${draft.length}명`;message('미리보기입니다. 확인·수정한 뒤 명단을 확정하세요.');}
 for(const b of document.querySelectorAll('[data-tab]'))b.onclick=()=>{for(const tab of document.querySelectorAll('[data-tab]')){const active=tab===b;tab.setAttribute('aria-pressed',String(active));$(tab.dataset.tab+'Panel').hidden=!active;}csvJob++;};
 $('generate').onclick=()=>action(()=>preview(numbered($('start').value.trim(),$('end').value.trim(),$('exclusions').value)));$('parseText').onclick=()=>action(()=>preview(pasted($('names').value)));
 $('readCsv').onclick=async()=>{const job=++csvJob;try{const f=$('csvFile').files[0];if(!f)throw Error('CSV 파일을 선택하세요.');if(f.size>1024*1024)throw Error('CSV 파일은 1MB 이하여야 합니다.');const enc=$('encoding').value;const buffer=await f.arrayBuffer();if(job!==csvJob)return;const text=new TextDecoder(enc,{fatal:true}).decode(buffer);preview(csv(text));}catch(e){message(e instanceof TypeError?'문자 인코딩 오류입니다. 인코딩을 바꾸고 다시 읽으세요.':e.message);}};

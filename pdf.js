@@ -22,7 +22,7 @@ export function installPdf(api) {
       const landscape = orientation === 'landscape';
       const [width,height] = landscape ? [841.89,595.28] : [595.28,841.89];
       const {rows, cols, teacher, disabled, students, result} = snapshot;
-      const byId = new Map(students.map((s,i)=>[s.id,{...s,display:s.number?`${s.number} · ${s.name}`:`${s.name} [구분 ${i+1}]`} ]));
+      const byId = new Map(students.map((s,i)=>[s.id,{...s,display:s.number || String(i+1)} ]));
       const safeText = text => {
         const value = clean(text);
         for (const ch of value) if (!charset.has(ch.codePointAt(0))) throw Error(`글꼴이 지원하지 않는 문자 '${ch}'가 있습니다. 제목·이름을 수정한 뒤 다시 다운로드하세요.`);
@@ -63,8 +63,7 @@ export function installPdf(api) {
             const c=teacher?cols-ci:ci+1,key=`R${r}C${c}`,off=disabled.includes(key);
             page.drawRectangle({x,y:y-cellH,width:cellW,height:cellH,borderColor:border,borderWidth:.7,color:off?rgb(.94,.94,.93):rgb(.97,.985,.97)});
             const student=byId.get(result[key]);const text=off?'제외 좌석':student?student.display:'빈자리';
-            centered(text,x+4,y-cellH+17,cellW-8,cellH-23,12);
-            centered(key,x+2,y-cellH+2,cellW-4,12,8);
+            centered(text,x+4,y-cellH+4,cellW-8,cellH-8,student?18:10);
             x+=cellW;
           }
           y-=cellH;

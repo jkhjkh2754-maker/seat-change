@@ -1,4 +1,4 @@
-import {validateRoster} from './core.js?v=81568836c015';
+import {validateRoster} from './core.js?v=d22a632616cd';
 
 // Stage 2 stores only the current page's result and edit history.
 export function installSeating(api) {
@@ -11,7 +11,7 @@ export function installSeating(api) {
   sound.before(soundHome);
   const cancelHome = document.createComment('cancel button');
   $('cancelSeating').before(cancelHome);
-  const label = student => `${student.number ? student.number + ' · ' : ''}${student.name}${!student.number ? ` [구분 ${api.students().indexOf(student) + 1}]` : ''}`;
+  const label = student => student.number || String(api.students().indexOf(student) + 1);
   const seats = () => [...document.querySelectorAll('.seat')].filter(b => !b.classList.contains('off')).map(b => b.dataset.seat);
   function stopSound() {
     if (audio) { const old = audio; audio = null; gain = null; old.close().catch(() => {}); }
@@ -86,8 +86,7 @@ export function installSeating(api) {
       b.replaceChildren();
       const name = document.createElement('span'); name.className = 'studentName';
       name.textContent = visible ? (student ? label(student) : '빈자리') : '공개하기';
-      const small = document.createElement('small'); small.textContent = key;
-      b.append(name, small); b.setAttribute('aria-label', `${key} ${name.textContent}`);
+      b.append(name); b.setAttribute('aria-label', `${key} ${name.textContent}`);
       b.setAttribute('aria-pressed', String(selected === key)); b.classList.toggle('selected', selected === key);
       b.onclick = () => {
         if (hidden) { api.message('결과 다시 보기를 누른 뒤 좌석을 공개하거나 교환하세요.'); return; }
