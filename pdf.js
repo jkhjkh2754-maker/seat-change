@@ -6,7 +6,10 @@ export function installPdf(api) {
     if (busy) return;
     const snapshot = api.snapshot();
     if (!snapshot) { api.message('유효한 자리 배치 결과가 필요합니다.'); return; }
-    busy = true; $('downloadPdf').disabled = true;
+    const titleInput = $('pdfTitle').value.trim() || '우리 반 자리 배치도';
+    const orientation = $('pdfOrientation').value;
+    const split = $('pdfSplit').checked;
+    busy = true; $('downloadPdf').dataset.busy = 'true'; $('downloadPdf').setAttribute('aria-busy','true'); $('downloadPdf').textContent = 'PDF 생성 중…'; $('downloadPdf').disabled = true;
     try {
       const {PDFDocument, rgb} = window.PDFLib;
       const response = await fetch(new URL('./fonts/NanumGothic-Regular.ttf', import.meta.url));
@@ -15,8 +18,8 @@ export function installPdf(api) {
       const font = await doc.embedFont(await response.arrayBuffer(), {subset:false});
       const charset = new Set(font.getCharacterSet());
       const clean = text => String(text).replace(/[\r\n\t]/g, ' ').replace(/[\x00-\x1f\x7f]/g, '');
-      const title = clean($('pdfTitle').value.trim() || '우리 반 자리 배치도');
-      const landscape = $('pdfOrientation').value === 'landscape';
+      const title = clean(titleInput);
+      const landscape = orientation === 'landscape';
       const [width,height] = landscape ? [841.89,595.28] : [595.28,841.89];
       const {rows, cols, rowGaps, colGaps, teacher, disabled, students, result} = snapshot;
       const byId = new Map(students.map((s,i)=>[s.id,{...s,display:s.number?`${s.number} · ${s.name}`:`${s.name} [구분 ${i+1}]`} ]));
@@ -37,7 +40,6 @@ export function installPdf(api) {
       }
       const gap=12, margin=30;
       const cellW=(width-margin*2-colGaps.length*gap)/cols;
-      const split=$('pdfSplit').checked;
       const perPage=split?Math.min(rows,Math.max(1,Math.floor((height-180)/(65+gap)))):rows;
       const order=Array.from({length:rows},(_,i)=>teacher?rows-i:i+1);
       const chunks=[];for(let i=0;i<rows;i+=perPage)chunks.push(order.slice(i,i+perPage));
@@ -74,6 +76,6 @@ export function installPdf(api) {
       const a=document.createElement('a');a.href=url;a.download=`${title.replace(/[\\/:*?"<>|]/g,'_').slice(0,80)}.pdf`;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
       api.message('PDF 파일을 생성했습니다. 다운로드 목록을 확인하세요.');
     } catch(e) { api.message(`PDF 생성 실패: ${e.message}`); }
-    finally { busy=false;api.refresh(); }
+    finally { busy=false; $('downloadPdf').dataset.busy = 'false'; $('downloadPdf').setAttribute('aria-busy','false'); $('downloadPdf').textContent = 'PDF 파일 다운로드'; api.refresh(); }
   };
 }

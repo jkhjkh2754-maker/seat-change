@@ -6,6 +6,11 @@ export function installSeating(api) {
   let result = null, past = [], future = [], selected = null;
   let revealed = new Set(), hidden = false, running = false, generation = 0;
   let timer = null, audio = null, gain = null, blockedControls = [];
+  const sound = document.querySelector('.soundControls');
+  const soundHome = document.createComment('sound controls');
+  sound.before(soundHome);
+  const cancelHome = document.createComment('cancel button');
+  $('cancelSeating').before(cancelHome);
   const label = student => `${student.number ? student.number + ' · ' : ''}${student.name}${!student.number ? ` [구분 ${api.students().indexOf(student) + 1}]` : ''}`;
   const seats = () => [...document.querySelectorAll('.seat')].filter(b => !b.classList.contains('off')).map(b => b.dataset.seat);
   function stopSound() {
@@ -42,9 +47,17 @@ export function installSeating(api) {
     } else { blockedControls.forEach(([b, old]) => b.disabled = old); blockedControls = []; }
     $('grid').hidden = value;
     $('startSeating').disabled = value; $('cancelSeating').hidden = !value; $('countdown').hidden = !value;
+    if (value) {
+      $('countdown').append(sound, $('cancelSeating'));
+      $('countdown').showModal(); $('cancelSeating').focus();
+    } else {
+      $('countdown').close();
+      soundHome.after(sound); cancelHome.after($('cancelSeating'));
+      $('startSeating').focus({preventScroll:true});
+    }
   }
   function controls() {
-    for (const key of ['revealAll', 'hideResult', 'editRoom', 'downloadPdf']) $(key).disabled = !result || running;
+    for (const key of ['revealAll', 'hideResult', 'editRoom', 'downloadPdf']) $(key).disabled = !result || running || (key === 'downloadPdf' && $(key).dataset.busy === 'true');
     $('undo').disabled = !past.length || running; $('redo').disabled = !future.length || running;
     $('hideResult').textContent = hidden ? '결과 다시 보기' : '결과 숨기기';
   }
@@ -62,7 +75,7 @@ export function installSeating(api) {
     const next = {...result, [from]: result[to] || null, [to]: result[from] || null};
     if (!valid(next)) { api.message('유효하지 않은 교환입니다.'); return; }
     past.push({...result}); future = []; result = next; selected = null;
-    api.message('두 좌석을 교환했습니다.'); api.draw();
+    api.message(`${from}와 ${to} 좌석을 교환했습니다.`); api.draw();
   }
   function decorate() {
     if (!result || running) { controls(); return; }
@@ -78,10 +91,10 @@ export function installSeating(api) {
       b.setAttribute('aria-pressed', String(selected === key)); b.classList.toggle('selected', selected === key);
       b.onclick = () => {
         if (hidden) { api.message('결과 다시 보기를 누른 뒤 좌석을 공개하거나 교환하세요.'); return; }
-        if (!revealed.has(key)) { revealed.add(key); api.draw(); return; }
+        if (!revealed.has(key)) { revealed.add(key); api.draw(); api.message(`${key}: ${student ? label(student) : '빈자리'}`); return; }
         if (selected === key) selected = null;
         else if (selected) { exchange(selected, key); return; }
-        else selected = key;
+        else { selected = key; api.message(`${key} 선택됨. 교환할 다른 공개 좌석을 선택하세요. Escape로 선택을 취소합니다.`); }
         api.draw();
         document.querySelector(`[data-seat="${key}"]`)?.focus();
       };
@@ -117,6 +130,17 @@ export function installSeating(api) {
       api.message('자리를 배치했습니다. 공개된 두 좌석을 차례로 누르거나 드래그해 교환하세요.'); api.draw();
     }, 50);
   };
+  $('countdown').addEventListener('keydown', event => {
+    if (event.key !== 'Tab') return;
+    const items = [...$('countdown').querySelectorAll('input, button')].filter(b => !b.disabled && !b.hidden);
+    const first = items[0], last = items.at(-1);
+    if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    else if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+  });
+  $('countdown').addEventListener('cancel', event => { event.preventDefault(); cancel(); });
+  $('grid').addEventListener('keydown', event => {
+    if (event.key === 'Escape' && selected) { selected = null; api.message('좌석 선택을 취소했습니다.'); api.draw(); }
+  });
   $('cancelSeating').onclick = cancel;
   $('mute').onchange = volume; $('volume').oninput = volume;
   $('revealAll').onclick = () => { hidden = false; revealed = new Set(Object.keys(result || {})); api.draw(); };
@@ -124,7 +148,7 @@ export function installSeating(api) {
   $('editRoom').onclick = () => { invalidate(); api.message('교실 편집 모드입니다. 기존 배치와 실행 취소 기록을 초기화했습니다.'); api.draw(); };
   $('undo').onclick = () => { if (!past.length) return; future.push({...result}); result = past.pop(); selected = null; api.draw(); };
   $('redo').onclick = () => { if (!future.length) return; past.push({...result}); result = future.pop(); selected = null; api.draw(); };
-  $('large').onclick = () => document.querySelector('.classroom').classList.toggle('large');
+  $('large').onclick = () => { const on = document.querySelector('.classroom').classList.toggle('large'); $('large').setAttribute('aria-pressed', String(on)); };
   $('fullscreen').onclick = async () => {
     try { if (document.fullscreenElement) await document.exitFullscreen(); else await document.querySelector('.classroom').requestFullscreen(); }
     catch { api.message('이 브라우저는 전체화면을 지원하지 않습니다. 큰 글씨 보기를 이용하세요.'); }
