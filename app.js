@@ -1,3 +1,4 @@
+import {installPdf} from './pdf.js';
 import {installSeating} from './stage2.js';
 import {roomSize,listNumbers,numbered,pasted,csv,validateRoster} from './core.js';
 const $=id=>document.getElementById(id);let rows=6,cols=6,disabled=new Set,rowGaps=[],colGaps=[],teacher=false,draft=[],students=[],serial=0,csvJob=0;
@@ -12,4 +13,6 @@ for(const b of document.querySelectorAll('[data-tab]'))b.onclick=()=>{for(const 
 $('generate').onclick=()=>action(()=>preview(numbered($('start').value.trim(),$('end').value.trim(),$('exclusions').value)));$('parseText').onclick=()=>action(()=>preview(pasted($('names').value)));
 $('readCsv').onclick=async()=>{const job=++csvJob;try{const f=$('csvFile').files[0];if(!f)throw Error('CSV 파일을 선택하세요.');if(f.size>1024*1024)throw Error('CSV 파일은 1MB 이하여야 합니다.');const enc=$('encoding').value;const buffer=await f.arrayBuffer();if(job!==csvJob)return;const text=new TextDecoder(enc,{fatal:true}).decode(buffer);preview(csv(text));}catch(e){message(e instanceof TypeError?'문자 인코딩 오류입니다. 인코딩을 바꾸고 다시 읽으세요.':e.message);}};
 $('confirm').onclick=()=>{const errors=validateRoster(draft,capacity());if(errors.length){message(errors.join('\n'));return;}stage?.invalidate();students=draft.map(s=>({...s,id:`student-${++serial}`}));draw();message('학생 명단을 확정했습니다.');};$('validate').onclick=()=>{const errors=validateRoster(students,capacity());message(errors.length?errors.join('\n'):'기본 검증을 통과했습니다. 자리 배치 시작 버튼을 누르세요.');};draw();
-stage = installSeating({students:()=>students, draw, message, cancelCsv:()=>csvJob++});
+stage = installSeating({students:()=>students, draw, message, cancelCsv:()=>csvJob++, room:()=>({rows,cols,rowGaps:[...rowGaps],colGaps:[...colGaps],teacher,disabled:[...disabled]})});
+
+installPdf({snapshot:stage.snapshot, refresh:stage.refresh, message});

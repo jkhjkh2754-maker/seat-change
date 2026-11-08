@@ -44,7 +44,7 @@ export function installSeating(api) {
     $('startSeating').disabled = value; $('cancelSeating').hidden = !value; $('countdown').hidden = !value;
   }
   function controls() {
-    for (const key of ['revealAll', 'hideResult', 'editRoom']) $(key).disabled = !result || running;
+    for (const key of ['revealAll', 'hideResult', 'editRoom', 'downloadPdf']) $(key).disabled = !result || running;
     $('undo').disabled = !past.length || running; $('redo').disabled = !future.length || running;
     $('hideResult').textContent = hidden ? '결과 다시 보기' : '결과 숨기기';
   }
@@ -131,5 +131,5 @@ export function installSeating(api) {
   };
   window.addEventListener('pagehide', () => { generation++; if (running) cleanup(); else stopSound(); });
   controls();
-  return {decorate, invalidate, running: () => running};
+  return {decorate, invalidate, refresh: controls, snapshot: () => (!running && result && valid(result) ? {result: {...result}, students: api.students().map(s=>({...s})), ...api.room()} : null), running: () => running};
 }
